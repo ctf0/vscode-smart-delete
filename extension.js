@@ -13,22 +13,24 @@ function activate(context) {
             let editor = vscode.window.activeTextEditor
             let { document, selections } = editor
 
-            // work top > bottom
             for (const item of invertSelections(selections)) {
-                if (await currentLineCheck(document, item, 'right')) {
-                    let range = new vscode.Range(
-                        item.active.line, // cursor line
-                        item.active.character, // cursor position
-                        document.lineCount, // end line of doc
-                        document.positionAt(document.getText().length - 1).character // end char of doc
-                    )
-                    let search = await document.getText(range)
+                let range = new vscode.Range(
+                    item.active.line, // cursor line
+                    item.active.character, // cursor position
+                    document.lineCount, // end line of doc
+                    document.positionAt(document.getText().length - 1).character // end char of doc
+                )
+                let search = await document.getText(range)
 
-                    await editor.edit((edit) => edit.replace(range, rightReplace(search)))
+                if (/^\s{2,}/.test(search)) {
+                    await editor.edit((edit) => edit.replace(range, replace(search, /\s{2,}\S/m)))
                 } else {
                     vscode.commands.executeCommand('deleteRight')
                 }
             }
+
+            // reset cursor
+            resetCursor(selections, 'right')
         })
     )
 
@@ -39,69 +41,30 @@ function activate(context) {
             let editor = vscode.window.activeTextEditor
             let { document, selections } = editor
 
-            // work bottom > top
             for (const item of invertSelections(selections)) {
-                if (await currentLineCheck(document, item, 'left')) {
-                    let range = new vscode.Range(
-                        0, // start line of doc
-                        0, // start char of doc
-                        item.end.line, // cursor line
-                        item.end.character // cursor position
-                    )
-                    let search = await document.getText(range)
+                let range = new vscode.Range(
+                    0, // start line of doc
+                    0, // start char of doc
+                    item.end.line, // cursor line
+                    item.end.character // cursor position
+                )
+                let search = await document.getText(range)
 
-                    await editor.edit((edit) => edit.replace(range, leftReplace(search)))
+                if (/\s{2,}$/.test(search)) {
+                    await editor.edit((edit) => edit.replace(range, replace(search, /\S\s{2,}$/g)))
                 } else {
                     vscode.commands.executeCommand('deleteLeft')
                 }
             }
+
+            // reset cursor
+            resetCursor(selections, 'left')
         })
     )
 }
 
-async function currentLineCheck(document, item, dir) {
-    let active = item.active
-    let end = item.end
-    let isLeft = dir == 'left'
-    let regex = isLeft ? /\s{2,}$/ : /^\s{2,}/
-    let txt = await document.lineAt(active.line).text
-    let search = await document.getText(
-        new vscode.Range(
-            active.line,
-            isLeft ? 0 : active.character,
-            end.line,
-            isLeft ? end.character : txt.length
-        )
-    )
-
-    if (search.length == 0) {
-        // ............word
-        // <|............word
-        if (active.character == 0 && isLeft && txt.match(/^\s+/)) {
-            return false
-        }
-
-        // EOL|>
-        // ............word
-        // or
-        // ............word
-        // <|SOF
-        return true
-    }
-
-    return regex.test(search)
-}
-
-function rightReplace(txt) {
-    return txt.replace(/\s{2,}\S/m, (match) => {
-        return match.trim()
-    })
-}
-
-function leftReplace(txt) {
-    return txt.replace(/\S\s{2,}$/g, (match) => {
-        return match.trim()
-    })
+function replace(txt, regex) {
+    return txt.replace(regex, (match) => match.trim())
 }
 
 function invertSelections(arr) {
@@ -113,8 +76,8 @@ function invertSelections(arr) {
     }).reverse()
 }
 
-function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms))
+function resetCursor(selections, dir) {
+    vscode.commands.executeCommand('removeSecondaryCursors')
 }
 
 exports.activate = activate
