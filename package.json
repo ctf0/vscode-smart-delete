@@ -1,0 +1,71 @@
+{
+    "name": "smart-delete",
+    "displayName": "Smart Delete",
+    "description": "",
+    "publisher": "ctf0",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.41.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "repository": "https://github.com/ctf0/vscode-smart-delete",
+    "activationEvents": [
+        "onCommand:smart-delete.right",
+        "onCommand:smart-delete.left"
+    ],
+    "main": "./extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "smart-delete.right",
+                "title": "Smart Delete: right remove"
+            },
+            {
+                "command": "smart-delete.left",
+                "title": "Smart Delete: left remove"
+            }
+        ],
+        "menus": {
+            "commandPalette": [
+                {
+                    "command": "smart-delete.right",
+                    "when": "editorTextFocus"
+                },
+                {
+                    "command": "smart-delete.left",
+                    "when": "editorTextFocus"
+                }
+            ]
+        },
+        "keybindings": [
+            {
+                "command": "smart-delete.right",
+                "key": "delete",
+                "mac": "delete",
+                "when": "editorTextFocus"
+            },
+            {
+                "command": "smart-delete.left",
+                "key": "backspace",
+                "mac": "backspace",
+                "when": "editorTextFocus"
+            }
+        ]
+    },
+    "scripts": {
+        "test": "node ./test/runTest.js"
+    },
+    "devDependencies": {
+        "@types/glob": "^7.1.1",
+        "@types/mocha": "^5.2.7",
+        "@types/node": "^12.11.7",
+        "@types/vscode": "^1.41.0",
+        "eslint": "^6.6.0",
+        "glob": "^7.1.5",
+        "mocha": "^6.2.2",
+        "typescript": "^3.6.4",
+        "vscode-test": "^1.2.2"
+    }
+}
