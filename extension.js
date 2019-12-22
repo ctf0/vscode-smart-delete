@@ -25,7 +25,6 @@ function activate(context) {
                     let search = await document.getText(range)
 
                     await editor.edit((edit) => edit.replace(range, rightReplace(search)))
-                    await sleep(1000)
                 } else {
                     vscode.commands.executeCommand('deleteRight')
                 }
@@ -79,8 +78,6 @@ async function currentLineCheck(document, item, dir) {
         // ............word
         // <|............word
         if (active.character == 0 && isLeft && txt.match(/^\s+/)) {
-            vscode.commands.executeCommand('deleteWordRight')
-
             return false
         }
 
