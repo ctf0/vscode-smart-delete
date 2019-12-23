@@ -1,3 +1,5 @@
-# smart-delete README
+![demos-1577086544499](https://user-images.githubusercontent.com/7388088/71343209-c7132000-2567-11ea-8824-a15df3176da5.gif)
 
-- we need custom commands for both `del/backspace` because vscode have the same representation for both when event if fired
+### Notes
+
+- multicursor is inconsistent so we fall-back to vscode native usage

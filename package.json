@@ -1,7 +1,7 @@
 {
     "name": "smart-delete",
     "displayName": "Smart Delete",
-    "description": "",
+    "description": "smartly remove empty lines/spaces when using delete or backspace ",
     "publisher": "ctf0",
     "version": "0.0.1",
     "engines": {
@@ -17,6 +17,16 @@
     ],
     "main": "./extension.js",
     "contributes": {
+        "configuration": {
+            "title": "Smart Delete",
+            "properties": {
+                "smart-delete.keepOneSpace": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "keep one empty space after removal"
+                }
+            }
+        },
         "commands": [
             {
                 "command": "smart-delete.right",
@@ -31,11 +41,11 @@
             "commandPalette": [
                 {
                     "command": "smart-delete.right",
-                    "when": "editorTextFocus"
+                    "when": "editorIsOpen"
                 },
                 {
                     "command": "smart-delete.left",
-                    "when": "editorTextFocus"
+                    "when": "editorIsOpen"
                 }
             ]
         },

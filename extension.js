@@ -1,10 +1,19 @@
 const { EOL } = require('os')
 const vscode = require('vscode')
+let config
 
 /**
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
+
+    readConfig()
+
+    vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration('smart-delete')) {
+            readConfig()
+        }
+    })
 
     // delete
     // |>............word
@@ -13,24 +22,25 @@ function activate(context) {
             let editor = vscode.window.activeTextEditor
             let { document, selections } = editor
 
-            for (const item of invertSelections(selections)) {
+            if (selections.length > 1) {
+                vscode.commands.executeCommand('deleteRight')
+            } else {
                 let range = new vscode.Range(
-                    item.active.line, // cursor line
-                    item.active.character, // cursor position
-                    document.lineCount, // end line of doc
-                    document.positionAt(document.getText().length - 1).character // end char of doc
+                    selections[0].active.line, // cursor line
+                    selections[0].active.character, // cursor position
+                    document.lineCount, // doc end line
+                    document.positionAt(document.getText().length - 1).character // doc end char
                 )
                 let search = await document.getText(range)
 
-                if (/^\s{2,}/.test(search)) {
-                    await editor.edit((edit) => edit.replace(range, replace(search, /\s{2,}\S/m)))
+                if (/^\s{2,}/.test(search)) { // multiline
+                    await editor.edit((edit) => edit.replace(range, replace(search, /\s{2,}\S/m, 'right')))
+                } else if (/^\n/.test(search)) { // end of line
+                    await editor.edit((edit) => edit.replace(range, replace(search, /\n/m, 'right')))
                 } else {
                     vscode.commands.executeCommand('deleteRight')
                 }
             }
-
-            // reset cursor
-            resetCursor(selections, 'right')
         })
     )
 
@@ -41,43 +51,40 @@ function activate(context) {
             let editor = vscode.window.activeTextEditor
             let { document, selections } = editor
 
-            for (const item of invertSelections(selections)) {
+            if (selections.length > 1) {
+                vscode.commands.executeCommand('deleteLeft')
+            } else {
                 let range = new vscode.Range(
-                    0, // start line of doc
-                    0, // start char of doc
-                    item.end.line, // cursor line
-                    item.end.character // cursor position
+                    0, // doc start line
+                    0, // doc start char
+                    selections[0].end.line, // cursor line
+                    selections[0].end.character // cursor position
                 )
                 let search = await document.getText(range)
 
                 if (/\s{2,}$/.test(search)) {
-                    await editor.edit((edit) => edit.replace(range, replace(search, /\S\s{2,}$/g)))
+                    await editor.edit((edit) => edit.replace(range, replace(search, /\S\s{2,}$/g, 'left')))
                 } else {
                     vscode.commands.executeCommand('deleteLeft')
                 }
             }
-
-            // reset cursor
-            resetCursor(selections, 'left')
         })
     )
 }
 
-function replace(txt, regex) {
-    return txt.replace(regex, (match) => match.trim())
+function replace(txt, regex, dir) {
+    let isLeft = dir == 'left'
+    let space = config.keepOneSpace ? ' ' : ''
+
+    return txt.replace(regex, (match) => {
+        let data = match.trim()
+
+        return isLeft ? `${data}${space}` : `${space}${data}`
+    })
 }
 
-function invertSelections(arr) {
-    return arr.sort((a, b) => { // make sure its sorted correctly
-        if (a.start.line > b.start.line) return 1
-        if (b.start.line > a.start.line) return -1
-
-        return 0
-    }).reverse()
-}
-
-function resetCursor(selections, dir) {
-    vscode.commands.executeCommand('removeSecondaryCursors')
+function readConfig() {
+    config = vscode.workspace.getConfiguration('smart-delete')
 }
 
 exports.activate = activate
