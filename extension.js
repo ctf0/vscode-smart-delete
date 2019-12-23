@@ -21,13 +21,14 @@ function activate(context) {
         vscode.commands.registerCommand('smart-delete.right', async () => {
             let editor = vscode.window.activeTextEditor
             let { document, selections } = editor
+            let currentSelection = selections[0]
 
-            if (selections.length > 1) {
+            if (selections.length > 1 || !currentSelection.isSingleLine) {
                 vscode.commands.executeCommand('deleteRight')
             } else {
                 let range = new vscode.Range(
-                    selections[0].active.line, // cursor line
-                    selections[0].active.character, // cursor position
+                    currentSelection.active.line, // cursor line
+                    currentSelection.active.character, // cursor position
                     document.lineCount, // doc end line
                     document.positionAt(document.getText().length - 1).character // doc end char
                 )
@@ -50,15 +51,16 @@ function activate(context) {
         vscode.commands.registerCommand('smart-delete.left', async () => {
             let editor = vscode.window.activeTextEditor
             let { document, selections } = editor
+            let currentSelection = selections[0]
 
-            if (selections.length > 1) {
+            if (selections.length > 1 || !currentSelection.isSingleLine) {
                 vscode.commands.executeCommand('deleteLeft')
             } else {
                 let range = new vscode.Range(
                     0, // doc start line
                     0, // doc start char
-                    selections[0].end.line, // cursor line
-                    selections[0].end.character // cursor position
+                    currentSelection.end.line, // cursor line
+                    currentSelection.end.character // cursor position
                 )
                 let search = await document.getText(range)
 

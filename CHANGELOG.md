@@ -3,3 +3,7 @@
 ## 0.0.1
 
 - Initial release
+
+## 0.0.2
+
+- fix multi line selection not following native usage
