@@ -3,7 +3,7 @@
     "displayName": "Smart Delete",
     "description": "smartly remove empty lines/spaces when using delete or backspace ",
     "publisher": "ctf0",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "engines": {
         "vscode": "^1.41.0"
     },
@@ -19,6 +19,7 @@
     "contributes": {
         "configuration": {
             "title": "Smart Delete",
+            "type": "object",
             "properties": {
                 "smart-delete.keepOneSpace": {
                     "type": "boolean",

@@ -23,6 +23,7 @@ function activate(context) {
             let { document, selections } = editor
             let currentSelection = selections[0]
 
+            // multi line selection or multi cursors
             if (selections.length > 1 || !currentSelection.isSingleLine) {
                 vscode.commands.executeCommand('deleteRight')
             } else {
@@ -40,8 +41,12 @@ function activate(context) {
                     } else { // normal
                         await editor.edit((edit) => edit.replace(range, replace(search, /\s{2,}\S/m, 'right')))
                     }
-                } else if (/^\n/.test(search)) { // end of line
-                    await editor.edit((edit) => edit.replace(range, replace(search, /\n/m, 'right')))
+
+                    insertNewLine()
+                } else if (new RegExp(`^${EOL}`).test(search)) { // end of line
+                    await editor.edit((edit) => edit.replace(range, replace(search, new RegExp(EOL, 'm'), 'right')))
+
+                    insertNewLine()
                 } else {
                     vscode.commands.executeCommand('deleteRight')
                 }
@@ -74,6 +79,8 @@ function activate(context) {
                     } else { // normal
                         await editor.edit((edit) => edit.replace(range, replace(search, /\S\s{2,}$/g, 'left')))
                     }
+
+                    insertNewLine()
                 } else {
                     vscode.commands.executeCommand('deleteLeft')
                 }
@@ -85,7 +92,7 @@ function activate(context) {
 function replace(txt, regex, dir) {
     let isLeft = dir == 'left'
     let space = config.keepOneLine
-        ? EOL
+        ? ''
         : config.keepOneSpace
             ? ' '
             : ''
@@ -95,6 +102,12 @@ function replace(txt, regex, dir) {
 
         return isLeft ? `${data}${space}` : `${space}${data}`
     })
+}
+
+function insertNewLine() {
+    config.keepOneLine
+        ? vscode.commands.executeCommand('type', { text: EOL })
+        : false
 }
 
 function readConfig() {
