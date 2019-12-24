@@ -35,7 +35,11 @@ function activate(context) {
                 let search = await document.getText(range)
 
                 if (/^\s{2,}/.test(search)) { // multiline
-                    await editor.edit((edit) => edit.replace(range, replace(search, /\s{2,}\S/m, 'right')))
+                    if (!search.trim()) { // nothing but empty lines
+                        await editor.edit((edit) => edit.replace(range, replace(search, /\s+/g, 'right')))
+                    } else { // normal
+                        await editor.edit((edit) => edit.replace(range, replace(search, /\s{2,}\S/m, 'right')))
+                    }
                 } else if (/^\n/.test(search)) { // end of line
                     await editor.edit((edit) => edit.replace(range, replace(search, /\n/m, 'right')))
                 } else {
@@ -65,7 +69,11 @@ function activate(context) {
                 let search = await document.getText(range)
 
                 if (/\s{2,}$/.test(search)) {
-                    await editor.edit((edit) => edit.replace(range, replace(search, /\S\s{2,}$/g, 'left')))
+                    if (!search.trim()) { // nothing but empty lines
+                        await editor.edit((edit) => edit.replace(range, replace(search, /\s+/g, 'left')))
+                    } else { // normal
+                        await editor.edit((edit) => edit.replace(range, replace(search, /\S\s{2,}$/g, 'left')))
+                    }
                 } else {
                     vscode.commands.executeCommand('deleteLeft')
                 }
@@ -76,7 +84,11 @@ function activate(context) {
 
 function replace(txt, regex, dir) {
     let isLeft = dir == 'left'
-    let space = config.keepOneSpace ? ' ' : ''
+    let space = config.keepOneLine
+        ? EOL
+        : config.keepOneSpace
+            ? ' '
+            : ''
 
     return txt.replace(regex, (match) => {
         let data = match.trim()
