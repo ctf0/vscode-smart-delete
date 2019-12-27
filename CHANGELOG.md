@@ -17,3 +17,8 @@
 - new flow if `keepOneLine: true` "now its even smarter"
     - if in the current line has text and u press del/backspace, it will remove the empty spaces as expected "no more jumping around"
     - if the previous line have text, and u press del/backspace, it will ignore the newline rule ex.`}\n) => })` again as expected "no more jumping around"
+
+## 0.0.6
+
+- correct right deletion removeing 2 chars
+- fix `Illegal value for line`

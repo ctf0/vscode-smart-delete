@@ -25,7 +25,7 @@ function activate(context) {
 
             // multi line selection or multi cursors
             if (selections.length > 1 || !currentSelection.isSingleLine) {
-                vscode.commands.executeCommand('deleteRight')
+                return vscode.commands.executeCommand('deleteRight')
             }
 
             // current line
@@ -140,9 +140,17 @@ async function otherLineCheck(document, cursor, dir) {
             let active = cursor.active.line
             let isLeft = dir == 'left'
             let line = isLeft
-                ? active - 1
+                ? active == 0
+                    ? 0
+                    : active - 1
                 : active + 1
-            let txt = await document.lineAt(line).text
+            let txt
+
+            try {
+                txt = await document.lineAt(line).text
+            } catch (err) {
+                txt = await document.lineAt(line - 1).text
+            }
 
             return txt.trim()
         }
