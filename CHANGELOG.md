@@ -22,3 +22,10 @@
 
 - correct right deletion removeing 2 chars
 - fix `Illegal value for line`
+
+## 0.0.7
+
+- multi cursor support
+- undo now will undo all the extension last operations as a single step instead of multiple
+- now the extension replaces all the native operations for `backspace & delete`, anything else is handled by vscode like normal
+- add new option `formatAfterNewLine`
