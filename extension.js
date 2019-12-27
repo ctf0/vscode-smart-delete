@@ -21,43 +21,29 @@ function activate(context) {
         vscode.commands.registerCommand('smart-delete.right', async () => {
             let editor = vscode.window.activeTextEditor
             let { document, selections } = editor
-            let currentSelection = selections[0]
+            let maxLine = document.lineCount
 
-            // multi line selection or multi cursors
-            if (selections.length > 1 || !currentSelection.isSingleLine) {
-                return vscode.commands.executeCommand('deleteRight')
-            }
+            if (selections.length > 1) {
+                let ranges = getRanges(sortSelections(selections).reverse(), 'right', maxLine)
 
-            // current line
-            if (await currentLineCheck(document, currentSelection, 'right')) {
-                return vscode.commands.executeCommand('deleteWordRight')
-            }
-
-            // |>............direct next line
-            let prevLineHasText = await otherLineCheck(document, currentSelection, 'right')
-
-            let range = new vscode.Range(
-                currentSelection.active.line, // cursor line
-                currentSelection.active.character, // cursor position
-                document.lineCount, // doc end line
-                document.positionAt(document.getText().length - 1).character // doc end char
-            )
-            let search = await document.getText(range)
-
-            if (/^\s{2,}/.test(search)) { // multiline
-                if (!search.trim()) { // nothing but empty lines
-                    await editor.edit((edit) => edit.replace(range, replace(search, /\s+/g, 'right')))
-                } else { // normal
-                    await editor.edit((edit) => edit.replace(range, replace(search, /\s{2,}\S/m, 'right')))
-
-                    if (!prevLineHasText) {
-                        insertNewLine()
-                    }
+                for (const item of ranges) {
+                    await rightOps(editor, item)
                 }
-            } else if (new RegExp(`^${EOL}`).test(search)) { // end of line
-                await editor.edit((edit) => edit.replace(range, replace(search, new RegExp(EOL, 'm'), 'right')))
             } else {
-                vscode.commands.executeCommand('deleteRight')
+                let selection = selections[0]
+
+                await rightOps(
+                    editor,
+                    {
+                        selection: selection,
+                        range: new vscode.Range(
+                            selection.start.line,
+                            selection.start.character,
+                            maxLine,
+                            0
+                        )
+                    }
+                )
             }
         })
     )
@@ -67,83 +53,229 @@ function activate(context) {
     context.subscriptions.push(
         vscode.commands.registerCommand('smart-delete.left', async () => {
             let editor = vscode.window.activeTextEditor
-            let { document, selections } = editor
-            let currentSelection = selections[0]
+            let { selections } = editor
+            let maxLine = 0
 
-            // multi line selection or multi cursors
-            if (selections.length > 1 || !currentSelection.isSingleLine) {
-                return vscode.commands.executeCommand('deleteLeft')
-            }
+            if (selections.length > 1) {
+                let ranges = getRanges(sortSelections(selections), 'left', maxLine)
 
-            // current line
-            if (await currentLineCheck(document, currentSelection, 'left')) {
-                return vscode.commands.executeCommand('deleteWordLeft')
-            }
-
-            // direct prev line............<|
-            let prevLineHasText = await otherLineCheck(document, currentSelection, 'left')
-
-            let range = new vscode.Range(
-                0, // doc start line
-                0, // doc start char
-                currentSelection.end.line, // cursor line
-                currentSelection.end.character // cursor position
-            )
-            let search = await document.getText(range)
-
-            if (/\s{2,}$/.test(search)) {
-                if (!search.trim()) { // nothing but empty lines
-                    await editor.edit((edit) => edit.replace(range, replace(search, /\s+/g, 'left')))
-                } else { // normal
-                    await editor.edit((edit) => edit.replace(range, replace(search, /\S\s{2,}$/g, 'left')))
-
-                    if (!prevLineHasText) {
-                        insertNewLine()
-                    }
+                for (const item of ranges) {
+                    await leftOps(editor, item)
                 }
             } else {
-                vscode.commands.executeCommand('deleteLeft')
+                let selection = selections[0]
+
+                await leftOps(
+                    editor,
+                    {
+                        selection: selection,
+                        range: new vscode.Range(
+                            maxLine,
+                            0,
+                            selection.start.line,
+                            selection.start.character
+                        )
+                    }
+                )
             }
         })
     )
 }
 
-async function currentLineCheck(document, cursor, dir) {
-    if (config.keepOneLine) {
-        let active = cursor.active
-        let end = cursor.end
-        let isLeft = dir == 'left'
-        let regex = isLeft ? /\S\s{2,}/ : /\s{2,}\S/
-        let txt = await document.lineAt(active.line).text
-        let search = await document.getText(
-            new vscode.Range(
-                active.line,
-                isLeft ? 0 : active.character,
-                end.line,
-                isLeft ? end.character : txt.length
-            )
-        )
+async function rightOps(editor, item) {
+    const { document } = editor
+    const { selection, range } = item
 
-        return regex.test(search)
+    // multi line selection
+    if (!selection.isSingleLine) {
+        return removeAll(editor, selection)
     }
 
-    return false
+    // current line
+    if (await currentLineCheck(editor, selection, 'right')) {
+        return
+    }
+
+    let search = await document.getText(range)
+
+    if (/^\s{2,}/.test(search)) { // multiline
+        if (!search.trim()) { // nothing but empty lines
+            await editor.edit(
+                (edit) => edit.replace(range, replace(search, /\s+/g, 'right')),
+                { undoStopBefore: false, undoStopAfter: false }
+            )
+        } else { // normal
+            await editor.edit(
+                (edit) => edit.replace(range, replace(search, /\s{2,}\S/m, 'right')),
+                { undoStopBefore: false, undoStopAfter: false }
+            )
+
+            // |>............direct next line
+            // if (!await otherLineCheck(editor, selection, 'right')) {
+            //     insertNewLine()
+            // }
+        }
+    } else if (new RegExp(`^${EOL}`).test(search)) { // end of line
+        await editor.edit(
+            (edit) => edit.replace(range, replace(search, new RegExp(EOL, 'm'), 'right')),
+            { undoStopBefore: false, undoStopAfter: false }
+        )
+    } else {
+        return removeOneChar(editor, range, 'right')
+    }
 }
 
-// prev or next
-async function otherLineCheck(document, cursor, dir) {
+async function leftOps(editor, item) {
+    const { document } = editor
+    const { selection, range } = item
+
+    // multi line selection
+    if (!selection.isSingleLine) {
+        return removeAll(editor, selection)
+    }
+
+    // current line
+    if (await currentLineCheck(editor, selection, 'left')) {
+        return
+    }
+
+    let search = await document.getText(range)
+
+    if (/\s{2,}$/.test(search)) {
+        if (!search.trim()) { // nothing but empty lines
+            await editor.edit(
+                (edit) => edit.replace(range, replace(search, /\s+/g, 'left')),
+                { undoStopBefore: false, undoStopAfter: false }
+            )
+        } else { // normal
+            await editor.edit(
+                (edit) => edit.replace(range, replace(search, /\S\s{2,}$/g, 'left')),
+                { undoStopBefore: false, undoStopAfter: false }
+            )
+
+            // direct prev line............<|
+            // if (!await otherLineCheck(editor, selection, 'left')) {
+            //     insertNewLine()
+            // }
+        }
+    } else {
+        return removeOneChar(editor, range, 'left')
+    }
+}
+
+async function removeAll(editor, selection) {
+    await editor.edit(
+        (edit) => edit.replace(
+            new vscode.Range(selection.start, selection.end),
+            ''
+        ),
+        { undoStopBefore: false, undoStopAfter: false }
+    )
+}
+
+async function removeOneChar(editor, range, dir) {
+    let isLeft = dir == 'left'
+
+    await editor.edit(
+        (edit) => edit.replace(
+            new vscode.Range(
+                isLeft ? range.end.line : range.start.line,
+                isLeft ? range.end.character : range.start.character,
+                isLeft ? range.end.line : range.start.line,
+                isLeft ? range.end.character - 1 : range.start.character + 1
+            ),
+            ''
+        ),
+        { undoStopBefore: false, undoStopAfter: false }
+    )
+}
+
+// get ranges distance for multi cursors
+function getRanges(arr, dir, maxLine) {
+    let isLeft = dir == 'left'
+    let dis = []
+    let prevPoint
+    let distance
+
+    for (let i = 0; i < arr.length; i++) {
+        const el = arr[i]
+        let range = new vscode.Range(
+            el.start,
+            el.end
+        )
+
+        if (i == 0) {
+            distance = isLeft
+                ? new vscode.Range(
+                    maxLine,
+                    0,
+                    el.start.line,
+                    el.start.character
+                )
+                : new vscode.Range(
+                    el.start.line,
+                    el.start.character,
+                    maxLine,
+                    0
+                )
+        } else {
+            distance = prevPoint.union(range)
+        }
+
+        prevPoint = range
+
+        dis.push({
+            range: distance,
+            selection: el
+        })
+    }
+
+    return dis
+}
+
+// current line
+async function currentLineCheck(editor, cursor, dir, remove = true) {
+    const { document } = editor
+
+    let start = cursor.start
+    let end = cursor.end
+    let isLeft = dir == 'left'
+    let regex = isLeft ? /\S\s{2,}/ : /\s{2,}\S/
+    let range = new vscode.Range(
+        start.line,
+        isLeft ? 0 : start.character,
+        end.line,
+        isLeft ? end.character : await document.lineAt(start.line).text.length
+    )
+    let search = await document.getText(range)
+    let check = regex.test(search)
+
+    if (check && remove) {
+        await editor.edit(
+            (edit) => edit.replace(range, replace(search, regex, dir)),
+            { undoStopBefore: false, undoStopAfter: false }
+        )
+    }
+
+    return check
+}
+
+// prev/next line
+async function otherLineCheck(editor, cursor, dir) {
     if (config.keepOneLine) {
+        const { document } = editor
+
         // check for cursor current location
         // ............<|word
         // word|>............
-        if (!await currentLineCheck(document, cursor, dir)) {
-            let active = cursor.active.line
+        if (!await currentLineCheck(editor, cursor, dir, false)) {
+            let start = cursor.start.line
             let isLeft = dir == 'left'
             let line = isLeft
-                ? active == 0
+                ? start == 0
                     ? 0
-                    : active - 1
-                : active + 1
+                    : start - 1
+                : start + 1
             let txt
 
             try {
@@ -157,6 +289,16 @@ async function otherLineCheck(document, cursor, dir) {
     }
 
     return false
+}
+
+// utils
+function sortSelections(arr) {
+    return arr.sort((a, b) => { // make sure its sorted correctly
+        if (a.start.line > b.start.line) return 1
+        if (b.start.line > a.start.line) return -1
+
+        return 0
+    })
 }
 
 function replace(txt, regex, dir) {
