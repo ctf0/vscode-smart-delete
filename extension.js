@@ -195,24 +195,39 @@ function getRanges(arr, dir, maxLine) {
 }
 
 // current line
-async function currentLineCheck(editor, cursor, dir, remove = true) {
+async function currentLineCheck(editor, cursor, dir) {
     const { document } = editor
-
+    let check = false
+    let isLeft = dir == 'left'
     let start = cursor.start
     let end = cursor.end
-    let isLeft = dir == 'left'
-    let regex = isLeft ? /\S\s{2,}/ : /\s{2,}\S/
-    let range = new vscode.Range(
-        start.line,
-        isLeft ? 0 : start.character,
-        end.line,
-        isLeft ? end.character : await document.lineAt(start.line).text.length
-    )
-    let search = await document.getText(range)
-    let check = regex.test(search)
 
-    if (check && remove) {
-        await changeDoc(editor, range, replaceTxt(search, regex, dir))
+    try { // remove next char
+        let next_char_range = document.getWordRangeAtPosition(start, isLeft ? /(\S\s|\S)$/ : /^(\S|\S\s)/)
+        let charPos = isLeft
+            ? next_char_range.end.character
+            : next_char_range.start.character
+
+        if (charPos == start.character) {
+            await removeOneChar(editor, next_char_range, dir)
+            check = true
+        } else {
+            throw new Error()
+        }
+    } catch (error) {  // remove spaces
+        let regex = isLeft ? /\S\s{2,}$/ : /^\s{2,}\S/
+        let range = new vscode.Range(
+            start.line,
+            isLeft ? 0 : start.character,
+            end.line,
+            isLeft ? end.character : await document.lineAt(start.line).text.length
+        )
+        let search = await document.getText(range)
+        check = regex.test(search)
+
+        if (check) {
+            await changeDoc(editor, range, replaceTxt(search, regex, dir))
+        }
     }
 
     return check

@@ -29,3 +29,7 @@
 - undo now will undo all the extension last operations as a single step instead of multiple
 - now the extension replaces all the native operations for `backspace & delete`, anything else is handled by vscode like normal
 - add new option `formatAfterNewLine`
+
+## 0.0.8
+
+- fix cant remove direct next character when there is multi empty spaces on the same line
