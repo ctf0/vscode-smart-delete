@@ -1,16 +1,18 @@
 const { EOL } = require('os')
 const vscode = require('vscode')
-let config
+
+let config = {}
+let charPairs = []
 
 /**
  * @param {vscode.ExtensionContext} context
  */
-function activate(context) {
-    readConfig()
+async function activate(context) {
+    await readConfig()
 
-    vscode.workspace.onDidChangeConfiguration((e) => {
+    vscode.workspace.onDidChangeConfiguration(async (e) => {
         if (e.affectsConfiguration('smart-delete')) {
-            readConfig()
+            await readConfig()
         }
     })
 
@@ -53,6 +55,7 @@ async function rightOps(editor, item) {
     }
 
     // current line
+    // SOL|>
     if (await currentLineCheck(editor, selection, 'right')) {
         return
     }
@@ -90,6 +93,7 @@ async function leftOps(editor, item) {
     }
 
     // current line
+    // <|EOL
     if (await currentLineCheck(editor, selection, 'left')) {
         return
     }
@@ -108,8 +112,38 @@ async function leftOps(editor, item) {
             return formatIndent()
         }
     } else {
+        if (await checkForCharPairs(editor, selection)) {
+            return
+        }
+
         return removeOneChar(editor, range, 'left')
     }
+}
+
+async function checkForCharPairs(editor, selection) {
+    let check = false
+
+    try {
+        let range = new vscode.Range(
+            selection.start.line,
+            selection.start.character - 1,
+            selection.end.line,
+            selection.end.character + 1
+        )
+
+        if (range.isSingleLine) {
+            let txt = editor.document.getText(range)
+
+            if (charPairs.includes(txt)) {
+                await changeDoc(editor, range, '')
+                check = true
+            }
+        }
+    } catch (error) {
+        return check
+    }
+
+    return check
 }
 
 function removeAll(editor, selection) {
@@ -203,12 +237,12 @@ async function currentLineCheck(editor, cursor, dir) {
     let end = cursor.end
 
     try { // remove next char
-        let next_char_range = document.getWordRangeAtPosition(start, isLeft ? /(\S\s|\S)$/ : /^(\S|\S\s)/)
-        let charPos = isLeft
+        let next_char_range = document.getWordRangeAtPosition(start, isLeft ? /(\S(\s)?)$/ : /^(\S(\s)?)/)
+        let next_char_pos = isLeft
             ? next_char_range.end.character
             : next_char_range.start.character
 
-        if (charPos == start.character) {
+        if (next_char_pos == start.character) {
             await removeOneChar(editor, next_char_range, dir)
             check = true
         } else {
@@ -271,8 +305,9 @@ function replaceTxt(txt, regex, dir) {
     })
 }
 
-function readConfig() {
-    config = vscode.workspace.getConfiguration('smart-delete')
+async function readConfig() {
+    config = await vscode.workspace.getConfiguration('smart-delete')
+    charPairs = config.charPairs
 }
 
 exports.activate = activate

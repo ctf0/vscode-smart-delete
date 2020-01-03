@@ -33,3 +33,7 @@
 ## 0.0.8
 
 - fix cant remove direct next character when there is multi empty spaces on the same line
+
+## 0.0.9
+
+- support auto removing consecutive char pairs ex.`{}`

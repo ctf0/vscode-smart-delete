@@ -3,7 +3,7 @@
     "displayName": "Smart Delete",
     "description": "smartly remove empty lines/spaces when using delete or backspace ",
     "publisher": "ctf0",
-    "version": "0.0.8",
+    "version": "0.0.9",
     "engines": {
         "vscode": "^1.41.0"
     },
@@ -35,6 +35,17 @@
                     "type": "boolean",
                     "default": false,
                     "description": "use `editor.action.formatDocument` to correct the indentation when using `keepOneLine`"
+                },
+                "smart-delete.charPairs": {
+                    "type": "array",
+                    "default": [
+                        "{}",
+                        "()",
+                        "[]",
+                        "\"\"",
+                        "''"
+                    ],
+                    "description": "auto remove both char pairs when removeing the left one"
                 }
             }
         },
@@ -88,5 +99,6 @@
         "mocha": "^6.2.2",
         "typescript": "^3.6.4",
         "vscode-test": "^1.2.2"
-    }
+    },
+    "dependencies": {}
 }
