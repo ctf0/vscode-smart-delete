@@ -38,6 +38,9 @@
                 },
                 "smart-delete.charPairs": {
                     "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
                     "default": [
                         "{}",
                         "()",
