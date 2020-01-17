@@ -37,3 +37,7 @@
 ## 0.0.9
 
 - support auto removing consecutive char pairs ex.`{}`
+
+## 0.1.0
+
+- fix negative line error

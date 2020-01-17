@@ -25,7 +25,9 @@ async function activate(context) {
             let ranges = getRanges(sortSelections(editor.selections), 'left', maxLine).reverse()
 
             for (const item of ranges) {
-                await leftOps(editor, item)
+                if (!item.range.isEmpty) {
+                    await leftOps(editor, item)
+                }
             }
         })
     )
@@ -39,7 +41,9 @@ async function activate(context) {
             let ranges = getRanges(sortSelections(editor.selections).reverse(), 'right', maxLine)
 
             for (const item of ranges) {
-                await rightOps(editor, item)
+                if (!item.range.isEmpty) {
+                    await rightOps(editor, item)
+                }
             }
         })
     )
