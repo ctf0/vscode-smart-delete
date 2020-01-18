@@ -208,8 +208,8 @@ function getRanges(arr, dir, maxLine) {
                 ? new vscode.Range(
                     maxLine,
                     0,
-                    el.start.line,
-                    el.start.character
+                    el.end.line,
+                    el.end.character
                 )
                 : new vscode.Range(
                     el.start.line,
