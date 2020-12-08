@@ -41,3 +41,7 @@
 ## 0.1.0
 
 - fix negative line error
+
+## 0.1.2
+
+- fix package settings name

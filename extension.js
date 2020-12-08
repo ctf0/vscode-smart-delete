@@ -1,6 +1,7 @@
-const { EOL } = require('os')
+const {EOL} = require('os')
 const vscode = require('vscode')
 
+const PACKAGE_NAME = 'smartDelete'
 let config = {}
 let charPairs = []
 
@@ -11,7 +12,7 @@ async function activate(context) {
     await readConfig()
 
     vscode.workspace.onDidChangeConfiguration(async (e) => {
-        if (e.affectsConfiguration('smart-delete')) {
+        if (e.affectsConfiguration(PACKAGE_NAME)) {
             await readConfig()
         }
     })
@@ -19,7 +20,7 @@ async function activate(context) {
     // backspace
     // word............<|
     context.subscriptions.push(
-        vscode.commands.registerCommand('smart-delete.left', async () => {
+        vscode.commands.registerCommand(`${PACKAGE_NAME}.left`, async () => {
             let editor = vscode.window.activeTextEditor
             let maxLine = 0
             let ranges = getRanges(sortSelections(editor.selections), 'left', maxLine).reverse()
@@ -35,7 +36,7 @@ async function activate(context) {
     // delete
     // |>............word
     context.subscriptions.push(
-        vscode.commands.registerCommand('smart-delete.right', async () => {
+        vscode.commands.registerCommand(`${PACKAGE_NAME}.right`, async () => {
             let editor = vscode.window.activeTextEditor
             let maxLine = editor.document.lineCount
             let ranges = getRanges(sortSelections(editor.selections).reverse(), 'right', maxLine)
@@ -50,8 +51,8 @@ async function activate(context) {
 }
 
 async function rightOps(editor, item) {
-    const { document } = editor
-    const { selection, range } = item
+    const {document} = editor
+    const {selection, range} = item
 
     // selected text
     if (!selection.isSingleLine || !selection.active.isEqual(selection.anchor)) {
@@ -88,8 +89,8 @@ async function rightOps(editor, item) {
 }
 
 async function leftOps(editor, item) {
-    const { document } = editor
-    const { selection, range } = item
+    const {document} = editor
+    const {selection, range} = item
 
     // selected text
     if (!selection.isSingleLine || !selection.active.isEqual(selection.anchor)) {
@@ -224,8 +225,8 @@ function getRanges(arr, dir, maxLine) {
         prevPoint = range
 
         dis.push({
-            range: distance,
-            selection: el
+            range     : distance,
+            selection : el
         })
     }
 
@@ -234,7 +235,7 @@ function getRanges(arr, dir, maxLine) {
 
 // current line
 async function currentLineCheck(editor, cursor, dir) {
-    const { document } = editor
+    const {document} = editor
     let check = false
     let isLeft = dir == 'left'
     let start = cursor.start
@@ -290,7 +291,7 @@ async function formatIndent() {
 async function changeDoc(editor, range, replacement) {
     return editor.edit(
         (edit) => edit.replace(range, replacement),
-        { undoStopBefore: false, undoStopAfter: false }
+        {undoStopBefore: false, undoStopAfter: false}
     )
 }
 
@@ -310,7 +311,7 @@ function replaceTxt(txt, regex, dir) {
 }
 
 async function readConfig() {
-    config = await vscode.workspace.getConfiguration('smart-delete')
+    config = await vscode.workspace.getConfiguration(PACKAGE_NAME)
     charPairs = config.charPairs
 }
 
