@@ -45,3 +45,7 @@
 ## 0.1.2
 
 - fix package settings name
+
+## 0.1.3
+
+- reveal position after delete

@@ -1,9 +1,9 @@
-const {EOL} = require('os')
+const {EOL}  = require('os')
 const vscode = require('vscode')
 
 const PACKAGE_NAME = 'smartDelete'
-let config = {}
-let charPairs = []
+let config         = {}
+let charPairs      = []
 
 /**
  * @param {vscode.ExtensionContext} context
@@ -21,15 +21,17 @@ async function activate(context) {
     // word............<|
     context.subscriptions.push(
         vscode.commands.registerCommand(`${PACKAGE_NAME}.left`, async () => {
-            let editor = vscode.window.activeTextEditor
+            let editor  = vscode.window.activeTextEditor
             let maxLine = 0
-            let ranges = getRanges(sortSelections(editor.selections), 'left', maxLine).reverse()
+            let ranges  = getRanges(sortSelections(editor.selections), 'left', maxLine).reverse()
 
             for (const item of ranges) {
                 if (!item.range.isEmpty) {
                     await leftOps(editor, item)
                 }
             }
+
+            editor.revealRange(editor.selection, 2)
         })
     )
 
@@ -37,21 +39,23 @@ async function activate(context) {
     // |>............word
     context.subscriptions.push(
         vscode.commands.registerCommand(`${PACKAGE_NAME}.right`, async () => {
-            let editor = vscode.window.activeTextEditor
+            let editor  = vscode.window.activeTextEditor
             let maxLine = editor.document.lineCount
-            let ranges = getRanges(sortSelections(editor.selections).reverse(), 'right', maxLine)
+            let ranges  = getRanges(sortSelections(editor.selections).reverse(), 'right', maxLine)
 
             for (const item of ranges) {
                 if (!item.range.isEmpty) {
                     await rightOps(editor, item)
                 }
             }
+
+            editor.revealRange(editor.selection, 2)
         })
     )
 }
 
 async function rightOps(editor, item) {
-    const {document} = editor
+    const {document}         = editor
     const {selection, range} = item
 
     // selected text
@@ -89,7 +93,7 @@ async function rightOps(editor, item) {
 }
 
 async function leftOps(editor, item) {
-    const {document} = editor
+    const {document}         = editor
     const {selection, range} = item
 
     // selected text
@@ -158,7 +162,7 @@ function removeAll(editor, selection) {
 }
 
 async function removeOneChar(editor, selection, dir) {
-    let isLeft = dir == 'left'
+    let isLeft  = dir == 'left'
     let endChar = selection.end.character
 
     let range = new vscode.Range(
@@ -175,7 +179,7 @@ async function removeOneChar(editor, selection, dir) {
     // direct prev line word
     // <|word
     if (range.isEmpty) {
-        range = new vscode.Range(
+        range      = new vscode.Range(
             range.start.line - 1,
             range.start.character,
             range.end.line,
@@ -193,12 +197,12 @@ async function removeOneChar(editor, selection, dir) {
 // get ranges distance for multi cursors
 function getRanges(arr, dir, maxLine) {
     let isLeft = dir == 'left'
-    let dis = []
+    let dis    = []
     let prevPoint
     let distance
 
     for (let i = 0; i < arr.length; i++) {
-        const el = arr[i]
+        const el  = arr[i]
         let range = new vscode.Range(
             el.start,
             el.end
@@ -236,14 +240,14 @@ function getRanges(arr, dir, maxLine) {
 // current line
 async function currentLineCheck(editor, cursor, dir) {
     const {document} = editor
-    let check = false
+    let check        = false
     let isLeft = dir == 'left'
-    let start = cursor.start
-    let end = cursor.end
+    let start        = cursor.start
+    let end          = cursor.end
 
     try { // remove next char
         let next_char_range = document.getWordRangeAtPosition(start, isLeft ? /(\S(\s)?)$/ : /^(\S(\s)?)/)
-        let next_char_pos = isLeft
+        let next_char_pos   = isLeft
             ? next_char_range.end.character
             : next_char_range.start.character
 
@@ -254,15 +258,15 @@ async function currentLineCheck(editor, cursor, dir) {
             throw new Error()
         }
     } catch (error) {  // remove spaces
-        let regex = isLeft ? /\S\s{2,}$/ : /^\s{2,}\S/
-        let range = new vscode.Range(
+        let regex  = isLeft ? /\S\s{2,}$/ : /^\s{2,}\S/
+        let range  = new vscode.Range(
             start.line,
             isLeft ? 0 : start.character,
             end.line,
             isLeft ? end.character : await document.lineAt(start.line).text.length
         )
         let search = await document.getText(range)
-        check = regex.test(search)
+        check      = regex.test(search)
 
         if (check) {
             await changeDoc(editor, range, replaceTxt(search, regex, dir))
@@ -297,7 +301,7 @@ async function changeDoc(editor, range, replacement) {
 
 function replaceTxt(txt, regex, dir) {
     let isLeft = dir == 'left'
-    let space = config.keepOneLine
+    let space  = config.keepOneLine
         ? EOL
         : config.keepOneSpace
             ? ' '
@@ -311,7 +315,7 @@ function replaceTxt(txt, regex, dir) {
 }
 
 async function readConfig() {
-    config = await vscode.workspace.getConfiguration(PACKAGE_NAME)
+    config    = await vscode.workspace.getConfiguration(PACKAGE_NAME)
     charPairs = config.charPairs
 }
 
